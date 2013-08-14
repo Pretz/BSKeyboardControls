@@ -10,9 +10,13 @@
 
 @interface BSKeyboardControls ()
 @property (nonatomic, strong) UIToolbar *toolbar;
-@property (nonatomic, strong) UISegmentedControl *segmentedControl;
 @property (nonatomic, strong) UIBarButtonItem *doneButton;
-@property (nonatomic, strong) UIBarButtonItem *segmentedControlItem;
+@property (nonatomic, strong) UIBarButtonItem *prevButton;
+@property (nonatomic, strong) UIBarButtonItem *nextButton;
+
+- (void)prevButtonPressed:(id)sender;
+- (void)nextButtonPressed:(id)sender;
+- (void)updatePrevNextStates;
 @end
 
 @implementation BSKeyboardControls
@@ -20,42 +24,31 @@
 #pragma mark -
 #pragma mark Lifecycle
 
-- (id)init
-{
-    return [self initWithFields:nil];
-}
-
-- (id)initWithFrame:(CGRect)frame
-{
-    return [self initWithFields:nil];
-}
-
 - (id)initWithFields:(NSArray *)fields
 {
-    if (self = [super initWithFrame:CGRectMake(0.0f, 0.0f, 320.0f, 44.0f)])
+    if (self = [super init])
     {
-        [self setToolbar:[[UIToolbar alloc] initWithFrame:self.frame]];
+        self.toolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 320.0f, 44.0f)];
         [self.toolbar setBarStyle:UIBarStyleBlackTranslucent];
         [self.toolbar setAutoresizingMask:(UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleWidth)];
-        [self addSubview:self.toolbar];
         
-        [self setSegmentedControl:[[UISegmentedControl alloc] initWithItems:@[ NSLocalizedStringFromTable(@"Previous", @"BSKeyboardControls", @"Previous button title."),
-                                                                               NSLocalizedStringFromTable(@"Next", @"BSKeyboardControls", @"Next button title.") ]]];
-        [self.segmentedControl addTarget:self action:@selector(segmentedControlValueChanged:) forControlEvents:UIControlEventValueChanged];
-        [self.segmentedControl setMomentary:YES];
-        [self.segmentedControl setSegmentedControlStyle:UISegmentedControlStyleBar];
-        [self.segmentedControl setEnabled:NO forSegmentAtIndex:BSKeyboardControlsDirectionPrevious];
-        [self.segmentedControl setEnabled:NO forSegmentAtIndex:BSKeyboardControlsDirectionNext];
-        [self setSegmentedControlItem:[[UIBarButtonItem alloc] initWithCustomView:self.segmentedControl]];
+        self.prevButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTable(@"Prev", @"BSKeyboardControls", @"Previous button title.")
+                                                           style:UIBarButtonItemStyleBordered
+                                                          target:self
+                                                          action:@selector(prevButtonpressed:)];
+        self.nextButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTable(@"Next", @"BSKeyboardControls", @"Next button title.")
+                                                           style:UIBarButtonItemStyleBordered
+                                                          target:self
+                                                          action:@selector(nextButtonPressed:)];
         
-        [self setDoneButton:[[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTable(@"Done", @"BSKeyboardControls", @"Done button title.")
-                                                             style:UIBarButtonItemStyleDone
-                                                            target:self
-                                                            action:@selector(doneButtonPressed:)]];
+        self.doneButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTable(@"Done", @"BSKeyboardControls", @"Done button title.")
+                                                           style:UIBarButtonItemStyleDone
+                                                          target:self
+                                                          action:@selector(doneButtonPressed:)];
         
-        [self setVisibleControls:(BSKeyboardControlPreviousNext | BSKeyboardControlDone)];
+        [self setVisibleControls:(BSKeyboardControlAll)];
         
-        [self setFields:fields];
+        self.fields = fields;
     }
     
     return self;
@@ -64,16 +57,8 @@
 - (void)dealloc
 {
     [self setFields:nil];
-    [self setSegmentedControlTintControl:nil];
-    [self setPreviousTitle:nil];
-    [self setBarTintColor:nil];
-    [self setNextTitle:nil];
-    [self setDoneTitle:nil];
-    [self setDoneTintColor:nil];
     [self setActiveField:nil];
     [self setToolbar:nil];
-    [self setSegmentedControl:nil];
-    [self setSegmentedControlItem:nil];
     [self setDoneButton:nil];
 }
 
@@ -93,7 +78,7 @@
                 [activeField becomeFirstResponder];
             }
         
-            [self updateSegmentedControlEnabledStates];
+            [self updatePrevNextStates];
         }
     }
 }
@@ -102,90 +87,75 @@
 {
     if (fields != _fields)
     {
-        for (UIView *field in fields)
-        {
-            if ([field isKindOfClass:[UITextField class]])
-            {
-                [(UITextField *)field setInputAccessoryView:self];
-            }
-            else if ([field isKindOfClass:[UITextView class]])
-            {
-                [(UITextView *)field setInputAccessoryView:self];
+        for (UIView *field in fields) {
+            if ([field respondsToSelector:@selector(setInputAccessoryView:)]) {
+                [field performSelector:@selector(setInputAccessoryView:) withObject:self.toolbar];
             }
         }
-        
         _fields = fields;
     }
 }
 
 - (void)setBarStyle:(UIBarStyle)barStyle
 {
-    if (barStyle != _barStyle)
-    {
-        [self.toolbar setBarStyle:barStyle];
-        
-        _barStyle = barStyle;
-    }
+    self.toolbar.barStyle = barStyle;
+}
+
+- (UIBarStyle)barStyle
+{
+    return self.toolbar.barStyle;
 }
 
 - (void)setBarTintColor:(UIColor *)barTintColor
 {
-    if (barTintColor != _barTintColor)
-    {
-        [self.toolbar setTintColor:barTintColor];
-        
-        _barTintColor = barTintColor;
-    }
+    [self.toolbar setTintColor:barTintColor];
 }
 
-- (void)setSegmentedControlTintControl:(UIColor *)segmentedControlTintControl
+- (UIColor *)barTintColor
 {
-    if (segmentedControlTintControl != _segmentedControlTintControl)
-    {
-        [self.segmentedControl setTintColor:segmentedControlTintControl];
-        
-        _segmentedControlTintControl = segmentedControlTintControl;
-    }
+    return self.toolbar.tintColor;
 }
 
 - (void)setPreviousTitle:(NSString *)previousTitle
 {
-    if (![previousTitle isEqualToString:_previousTitle])
-    {
-        [self.segmentedControl setTitle:previousTitle forSegmentAtIndex:BSKeyboardControlsDirectionPrevious];
-        
-        _previousTitle = previousTitle;
-    }
+    self.prevButton.title = previousTitle;
+}
+
+- (NSString *)previousTitle
+{
+    return self.prevButton.title;
 }
 
 - (void)setNextTitle:(NSString *)nextTitle
 {
-    if (![nextTitle isEqualToString:_nextTitle])
-    {
-        [self.segmentedControl setTitle:nextTitle forSegmentAtIndex:BSKeyboardControlsDirectionNext];
-        
-        _nextTitle = nextTitle;
-    }
+    self.nextButton.title = nextTitle;
+
+}
+
+- (NSString *)nextTitle
+{
+    return self.nextButton.title;
 }
 
 - (void)setDoneTitle:(NSString *)doneTitle
 {
-    if (![doneTitle isEqualToString:_doneTitle])
-    {
-        [self.doneButton setTitle:doneTitle];
-        
-        _doneTitle = doneTitle;
-    }
+    [self.doneButton setTitle:doneTitle];
 }
+
+- (NSString *)doneTitle
+{
+    return self.doneButton.title;
+}
+
 
 - (void)setDoneTintColor:(UIColor *)doneTintColor
 {
-    if (doneTintColor != _doneTintColor)
-    {
-        [self.doneButton setTintColor:doneTintColor];
-        
-        _doneTintColor = doneTintColor;
-    }
+    [self.doneButton setTintColor:doneTintColor];
+}
+
+- (UIColor *)doneTintColor
+{
+    return self.doneButton.tintColor;
 }
 
 - (void)setVisibleControls:(BSKeyboardControl)visibleControls
@@ -198,22 +168,16 @@
     }
 }
 
-#pragma mark -
-#pragma mark Private Methods
+#pragma mark - Private Methods
 
-- (void)segmentedControlValueChanged:(id)sender
+- (void)prevButtonPressed:(id)sender
 {
-    switch (self.segmentedControl.selectedSegmentIndex)
-    {
-        case BSKeyboardControlsDirectionPrevious:
-            [self selectPreviousField];
-            break;
-        case BSKeyboardControlsDirectionNext:
-            [self selectNextField];
-            break;
-        default:
-            break;
-    }
+    [self selectPreviousField];
+}
+
+- (void)nextButtonPressed:(id)sender
+{
+    [self selectNextField];
 }
 
 - (void)doneButtonPressed:(id)sender
@@ -224,13 +188,13 @@
     }
 }
 
-- (void)updateSegmentedControlEnabledStates
+- (void)updatePrevNextStates
 {
     NSInteger index = [self.fields indexOfObject:self.activeField];
     if (index != NSNotFound)
     {
-        [self.segmentedControl setEnabled:(index > 0) forSegmentAtIndex:BSKeyboardControlsDirectionPrevious];
-        [self.segmentedControl setEnabled:(index < [self.fields count] - 1) forSegmentAtIndex:BSKeyboardControlsDirectionNext];
+        [self.prevButton setEnabled:(index > 0)];
+        [self.nextButton setEnabled:(index < [self.fields count] - 1)];
     }
 }
 
@@ -269,9 +233,13 @@
 - (NSArray *)toolbarItems
 {
     NSMutableArray *items = [NSMutableArray arrayWithCapacity:3];
-    if (self.visibleControls & BSKeyboardControlPreviousNext)
+    if (self.visibleControls & BSKeyboardControlPrevious)
     {
-        [items addObject:self.segmentedControlItem];
+        [items addObject:self.prevButton];
+    }
+    if (self.visibleControls & BSKeyboardControlNext)
+    {
+        [items addObject:self.nextButton];
     }
     
     if (self.visibleControls & BSKeyboardControlDone)

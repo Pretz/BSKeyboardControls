@@ -11,25 +11,35 @@
 /**
  *  Available controls.
  */
-typedef enum
-{
-    BSKeyboardControlPreviousNext = 1 << 0,
-    BSKeyboardControlDone = 1 << 1
-} BSKeyboardControl;
+
+#ifndef NS_ENUM
+#define NS_ENUM(_type, _name) enum _name : _type _name; enum _name : _type
+#endif
+
+#ifndef NS_OPTIONS
+#define NS_OPTIONS(_type, _name) enum _name : _type _name; enum _name : _type
+#endif
+
+typedef NS_OPTIONS(NSUInteger, BSKeyboardControl) {
+    BSKeyboardControlPrevious = 1 << 0,
+    BSKeyboardControlNext = 1 << 1,
+    BSKeyboardControlDone = 1 << 2,
+    BSKeyboardControlAll = NSUIntegerMax
+};
+
 
 /**
  *  Directions in which the fields can be selected.
  *  These are relative to the active field.
  */
-typedef enum
-{
-    BSKeyboardControlsDirectionPrevious = 0,
+typedef NS_ENUM(NSUInteger, BSKeyboardControlsDirection) {
+    BSKeyboardControlsDirectionPrevious,
     BSKeyboardControlsDirectionNext
-} BSKeyboardControlsDirection;
+};
 
 @protocol BSKeyboardControlsDelegate;
 
-@interface BSKeyboardControls : UIView
+@interface BSKeyboardControls : NSObject
 
 /**
  *  Delegate to send callbacks to.
@@ -48,14 +58,14 @@ typedef enum
  *  All fields will automatically have the input accessory view set to
  *  the instance of the controls.
  */
-@property (nonatomic, strong) NSArray *fields;
+@property (nonatomic, copy) NSArray *fields;
 
 /**
  *  The active text field.
  *  This should be set when the user begins editing a text field or a text view
  *  and it is automatically set when selecting the previous or the next field.
  */
-@property (nonatomic, strong) UIView *activeField;
+@property (nonatomic, weak) UIView *activeField;
 
 /**
  *  Style of the toolbar.
@@ -66,11 +76,6 @@ typedef enum
  *  Tint color of the toolbar.
  */
 @property (nonatomic, strong) UIColor *barTintColor;
-
-/**
- *  Tint color of the segmented control.
- */
-@property (nonatomic, strong) UIColor *segmentedControlTintControl;
 
 /**
  *  Title of the previous button. If this is not set, a default localized title will be used.
