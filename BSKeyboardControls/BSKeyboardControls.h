@@ -65,7 +65,7 @@ typedef NS_ENUM(NSUInteger, BSKeyboardControlsDirection) {
  *  This should be set when the user begins editing a text field or a text view
  *  and it is automatically set when selecting the previous or the next field.
  */
-@property (nonatomic, weak) UIView *activeField;
+@property (nonatomic, strong) UIView *activeField;
 
 /**
  *  Style of the toolbar.

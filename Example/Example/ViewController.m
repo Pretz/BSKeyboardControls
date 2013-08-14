@@ -92,8 +92,23 @@ enum
 
 - (void)keyboardControls:(BSKeyboardControls *)keyboardControls selectedField:(UIView *)field inDirection:(BSKeyboardControlsDirection)direction
 {
-    UIView *view = keyboardControls.activeField.superview.superview;
-    [self.tableView scrollRectToVisible:view.frame animated:YES];
+    while (![field isKindOfClass:[UITableViewCell class]]) {
+        field = [field superview];
+    }
+    
+    if (field) {
+        NSIndexPath *cellIndexPath = [self.tableView indexPathForCell:(UITableViewCell *)field];
+        if (!cellIndexPath) {
+            cellIndexPath = [self.tableView indexPathForRowAtPoint:field.frame.origin];
+        }
+        if (cellIndexPath) {
+            [self.tableView scrollToRowAtIndexPath:cellIndexPath
+                                  atScrollPosition:UITableViewScrollPositionMiddle
+                                          animated:YES];
+        } else {
+            [self.tableView scrollRectToVisible:field.frame animated:YES];
+        }
+    }
 }
 
 - (void)keyboardControlsDonePressed:(BSKeyboardControls *)keyboardControls

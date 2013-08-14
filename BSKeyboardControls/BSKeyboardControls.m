@@ -35,7 +35,7 @@
         self.prevButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTable(@"Prev", @"BSKeyboardControls", @"Previous button title.")
                                                            style:UIBarButtonItemStyleBordered
                                                           target:self
-                                                          action:@selector(prevButtonpressed:)];
+                                                          action:@selector(prevButtonPressed:)];
         self.nextButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTable(@"Next", @"BSKeyboardControls", @"Next button title.")
                                                            style:UIBarButtonItemStyleBordered
                                                           target:self
