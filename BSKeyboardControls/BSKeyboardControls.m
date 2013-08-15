@@ -24,7 +24,11 @@
 #pragma mark -
 #pragma mark Lifecycle
 
-- (id)initWithFields:(NSArray *)fields
+- (instancetype)init {
+    return [self initWithFields:nil];
+}
+
+- (instancetype)initWithFields:(NSArray *)fields
 {
     if (self = [super init])
     {

@@ -102,7 +102,11 @@ typedef NS_ENUM(NSUInteger, BSKeyboardControlsDirection) {
  *  @param fields Fields which the controls should handle.
  *  @return Initialized keyboard controls.
  */
-- (id)initWithFields:(NSArray *)fields;
+- (instancetype)initWithFields:(NSArray *)fields;
+
+- (void)selectNextField;
+
+- (void)selectPreviousField;
 
 @end
 
